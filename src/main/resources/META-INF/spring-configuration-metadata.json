@@ -1,0 +1,19 @@
+{
+  "properties": [
+    {
+      "name": "spring.mymain.testa",
+      "type": "java.lang.String",
+      "sourceType": "com.xiaoli.demo.springDemo.TestProperties",
+      "description": "Whether to allow circular references between beans and automatically try to resolve them.",
+      "defaultValue": false
+    },
+    {
+      "name": "spring.mymain.testb",
+      "type": "java.lang.String",
+      "sourceType": "com.xiaoli.demo.springDemo.TestProperties",
+      "description": "Whether to allow circular references between beans and automatically try to resolve them.",
+      "defaultValue": false
+    }
+
+  ]
+}
