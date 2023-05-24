@@ -2,6 +2,7 @@ package com.xiaoli.demo.mq.rocketmq;
 
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.protocol.header.CreateTopicRequestHeader;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
@@ -25,63 +26,74 @@ public class CreateTopicController {
     public String createTopic(TopicConfigDto topicConfigDto){
 
         //创建topic
-        DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt();
-        defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
-        try {
-            TopicConfig topicConfig = new TopicConfig();
-            topicConfig.setReadQueueNums(8);
-            topicConfig.setWriteQueueNums(8);
-            topicConfig.setTopicName(topicConfigDto.getTopicName());
+        String topicName = topicConfigDto.getTopicName();
+        if (StringUtils.isNotEmpty(topicName)) {
+            DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt();
+            defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
+            try {
+                TopicConfig topicConfig = new TopicConfig();
+                topicConfig.setReadQueueNums(8);
+                topicConfig.setWriteQueueNums(8);
+                topicConfig.setTopicName(topicName);
 
-            CreateTopicRequestHeader requestHeader = new CreateTopicRequestHeader();
-            requestHeader.setTopic(topicConfig.getTopicName());
-            requestHeader.setDefaultTopic(TopicValidator.AUTO_CREATE_TOPIC_KEY_TOPIC);
-            requestHeader.setReadQueueNums(topicConfig.getReadQueueNums());
-            requestHeader.setWriteQueueNums(topicConfig.getWriteQueueNums());
-            requestHeader.setPerm(topicConfig.getPerm());
-            requestHeader.setTopicFilterType(topicConfig.getTopicFilterType().name());
-            requestHeader.setTopicSysFlag(topicConfig.getTopicSysFlag());
-            requestHeader.setOrder(topicConfig.isOrder());
-            defaultMQAdminExt.setNamesrvAddr(topicConfigDto.getNameSrvAddr());
-            defaultMQAdminExt.start();
+                CreateTopicRequestHeader requestHeader = new CreateTopicRequestHeader();
+                requestHeader.setTopic(topicConfig.getTopicName());
+                requestHeader.setDefaultTopic(TopicValidator.AUTO_CREATE_TOPIC_KEY_TOPIC);
+                requestHeader.setReadQueueNums(topicConfig.getReadQueueNums());
+                requestHeader.setWriteQueueNums(topicConfig.getWriteQueueNums());
+                requestHeader.setPerm(topicConfig.getPerm());
+                requestHeader.setTopicFilterType(topicConfig.getTopicFilterType().name());
+                requestHeader.setTopicSysFlag(topicConfig.getTopicSysFlag());
+                requestHeader.setOrder(topicConfig.isOrder());
+                defaultMQAdminExt.setNamesrvAddr(topicConfigDto.getNameSrvAddr());
+                defaultMQAdminExt.start();
 
-            Set<String> masterSet =
-                    CommandUtil.fetchMasterAddrByClusterName(defaultMQAdminExt, topicConfigDto.getClusterName());
-            for (String addr : masterSet) {
-                defaultMQAdminExt.createAndUpdateTopicConfig(addr, topicConfig);
-                System.out.printf("create topic to %s success.%n", addr);
+                Set<String> masterSet =
+                        CommandUtil.fetchMasterAddrByClusterName(defaultMQAdminExt, topicConfigDto.getClusterName());
+                for (String addr : masterSet) {
+                    defaultMQAdminExt.createAndUpdateTopicConfig(addr, topicConfig);
+                    System.out.printf("create topic to %s success.%n", addr);
+                }
+                System.out.printf("%s", topicConfig);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }finally {
+                defaultMQAdminExt.shutdown();
             }
-            System.out.printf("%s", topicConfig);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }finally {
-            defaultMQAdminExt.shutdown();
+        }else {
+            log.info("topicname is empty");
         }
 
         //创建group 可以成功，生产者和消费者都可以发收消息 ，但是不创建完成后找不到group，需要生成者消费者发收消息后可以看到
-        DefaultMQAdminExt mqAdminExt = new DefaultMQAdminExt();
-        mqAdminExt.setNamesrvAddr(topicConfigDto.getNameSrvAddr());
-        SubscriptionGroupConfig config = new SubscriptionGroupConfig();
-        config.setGroupName(topicConfigDto.getGroupName());
-        try {
-            mqAdminExt.start();
-            Set<String> masterSet = CommandUtil.fetchMasterAddrByClusterName(mqAdminExt,
-                    topicConfigDto.getClusterName());
-            for (String addr : masterSet) {
-                try {
-                    mqAdminExt.createAndUpdateSubscriptionGroupConfig(addr, config);
-                    log.info(String.format("create subscription group %s to %s success.\n", topicConfigDto.getClusterName(),
-                            addr));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    Thread.sleep(1000 * 1);
+        String groupName = topicConfigDto.getGroupName();
+        if (StringUtils.isNotEmpty(groupName)) {
+            DefaultMQAdminExt mqAdminExt = new DefaultMQAdminExt();
+            mqAdminExt.setNamesrvAddr(topicConfigDto.getNameSrvAddr());
+            SubscriptionGroupConfig config = new SubscriptionGroupConfig();
+            config.setGroupName(groupName);
+            try {
+                mqAdminExt.start();
+                Set<String> masterSet = CommandUtil.fetchMasterAddrByClusterName(mqAdminExt,
+                        topicConfigDto.getClusterName());
+                for (String addr : masterSet) {
+                    try {
+                        mqAdminExt.createAndUpdateSubscriptionGroupConfig(addr, config);
+                        log.info(String.format("create subscription group %s to %s success.\n", topicConfigDto.getClusterName(),
+                                addr));
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        Thread.sleep(1000 * 1);
+                    }
                 }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }finally {
+                mqAdminExt.shutdown();
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }finally {
-            mqAdminExt.shutdown();
+        }else {
+            log.info("groupname is empty");
         }
+
 
         return "success";
 
