@@ -64,7 +64,7 @@ public class CreateTopicController {
             log.info("topicname is empty");
         }
 
-        //创建group 可以成功，生产者和消费者都可以发收消息 ，但是不创建完成后找不到group，需要生成者消费者发收消息后可以看到
+        //创建group 可以成功，生产者和消费者都可以发收消息 ，但是创建完成后找不到group，需要生成者消费者发收消息后可以看到
         String groupName = topicConfigDto.getGroupName();
         if (StringUtils.isNotEmpty(groupName)) {
             DefaultMQAdminExt mqAdminExt = new DefaultMQAdminExt();
